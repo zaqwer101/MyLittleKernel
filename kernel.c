@@ -10,6 +10,7 @@
 #define INTERRUPT_GATE 0x8e
 #define KERNEL_CODE_SEGMENT_OFFSET 0x08
 #define ENTER_KEY_CODE 0x1C
+#define KERNEL_CONSOLE_ATTR 0x01
 
 /* подгружаем функции из NASM */
 extern unsigned char keyboard_map[128];
@@ -20,7 +21,7 @@ extern void load_idt(unsigned long *idt_ptr);
 
 unsigned int current_loc = 0;											// Текущая позиция курсора
 
-char *screen; 															// Тут начинается видеопамять 
+char *screen = (char*)0xb8000; 											// Тут начинается видеопамять 
 
 struct IDT_entry {
 	unsigned short int offset_lowerbits;
@@ -72,12 +73,12 @@ void kb_init(void)
 	write_port(0x21 , 0xFD);
 }
 
-void kprint(const char *str)							// Вывод на экран 
+void kprint(const char *str, const char attr)							// Вывод на экран 
 {
 	unsigned int i = 0;
 	while (str[i] != '\0') {
 		screen[current_loc++] = str[i++];
-		screen[current_loc++] = 0x07;
+		screen[current_loc++] = attr;
 	}
 }
 
@@ -87,17 +88,17 @@ void newline(void)														// Новая строка
 	current_loc = current_loc + (line_size - current_loc % (line_size));
 }
 
-void clear_screen(void)
+void clear_screen(const char attr)
 {
 	unsigned int i = 0;
 	while (i < SCREENSIZE) 
 	{
 		screen[i++] = ' ';
-		screen[i++] = 0x07;
+		screen[i++] = attr;
 	}
 }
 
-void keyboard_handler_main(void)
+void keyboard_handler_main(const char attr)
 {
 	unsigned char status;
 	char keycode;
@@ -109,7 +110,17 @@ void keyboard_handler_main(void)
 	if(status & 0x01)													// Если младший бит == 1, то в буфере что-то есть 
 	{
 		keycode = read_port(KEYBOARD_DATA_PORT);
+		
 		if(keycode < 0) return;
+		
+		if(keycode == 0x3B)
+		{
+			current_loc = 0;
+			clear_screen(0x0a);
+			return;
+		}
+		
+		
 		
 		if(keycode == ENTER_KEY_CODE) {
 				newline();
@@ -117,7 +128,7 @@ void keyboard_handler_main(void)
 		}
 		
 		screen[current_loc++] = keyboard_map[(unsigned char) keycode];
-		screen[current_loc++] = 0x07;
+		screen[current_loc++] = attr;
 	}
 }
 
@@ -125,8 +136,8 @@ void kmain(void)
 {
 	const char *str = "my first kernel with keyboard support";
 	
-	clear_screen();
-	kprint(str);
+	clear_screen(KERNEL_CONSOLE_ATTR);
+	kprint(str, KERNEL_CONSOLE_ATTR);
 	
 	newline();
 	newline();
