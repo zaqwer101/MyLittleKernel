@@ -1,16 +1,11 @@
-;;kernel.asm
- 
-;nasm directive - 32 bit
-bits 32
 section .text
-        ;multiboot spec
         align 4
         dd 0x1BADB002            ;магические числа
-        dd 0x00                  ;флаги
-        dd - (0x1BADB002 + 0x00) ;контрольная сумма. мч+ф+кс должно равняться нулю
+        dd 0x00                  
+        dd - (0x1BADB002 + 0x00) 
  
 global start
-extern kmain         ;kmain определена во внешнем файле
+extern kmain         ;
  
 start:
   cli ;блокировка прерываний
