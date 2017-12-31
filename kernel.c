@@ -10,7 +10,10 @@
 #define IDT_SIZE 256
 #define INTERRUPT_GATE 0x8e
 #define KERNEL_CODE_SEGMENT_OFFSET 0x08
+
 #define ENTER_KEY_CODE 0x1C
+#define BACKSPACE_KEY_CODE 0x0E
+
 #define KERNEL_CONSOLE_COLOR 0x03
 
 extern unsigned char keyboard_map[128];
@@ -35,6 +38,7 @@ struct IDT_entry {
 
 struct IDT_entry IDT[IDT_SIZE];
 
+//Магия, навык использования которой у меня не прокачан.
 void idt_init(void)
 {
 	unsigned long keyboard_address;
@@ -116,15 +120,15 @@ void keyboard_handler_main()
 	
 	if(status & 0x01)													// Если младший бит == 1, то в буфере что-то есть 
 	{
-		char str[256];
-		
+                char *string[256];
+                unsigned int counter = 0;
 		keycode = read_port(KEYBOARD_DATA_PORT);
 		
 		if(keycode < 0) return;
 		
 		switch(keycode)
 		{
-			case 0x0E:
+                        case BACKSPACE_KEY_CODE:
 			{
 				screen[current_loc - 2] = ' ';
 				current_loc -= 2;
@@ -133,12 +137,21 @@ void keyboard_handler_main()
 			
 			case ENTER_KEY_CODE:
 			{
-				newline();
+                                counter = 0;
+                                if(string == "test")
+                                {
+                                    clear_screen();
+                                    kprint("Passed!", KERNEL_CONSOLE_COLOR);
+                                }
+
+                                newline();
 				return;
 			}
 			
 			default:
 			{
+                                string[counter] = keyboard_map[(unsigned char) keycode];
+                                counter++;
 				screen[current_loc++] = keyboard_map[(unsigned char) keycode];
 				screen[current_loc++] = KERNEL_CONSOLE_COLOR;
 			}
