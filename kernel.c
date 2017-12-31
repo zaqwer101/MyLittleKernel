@@ -1,5 +1,6 @@
-#include "keyboard_map.h"
+// https://community.bistudio.com/wiki/DIK_KeyCodes
 
+#include "keyboard_map.h"
 #define LINES 25
 #define COLUMNS_IN_LINE 80
 #define BYTES_FOR_EACH_ELEMENT 2
@@ -10,10 +11,11 @@
 #define INTERRUPT_GATE 0x8e
 #define KERNEL_CODE_SEGMENT_OFFSET 0x08
 #define ENTER_KEY_CODE 0x1C
-#define KERNEL_CONSOLE_ATTR 0x01
+#define KERNEL_CONSOLE_COLOR 0x03
+
+extern unsigned char keyboard_map[128];
 
 /* подгружаем функции из NASM */
-extern unsigned char keyboard_map[128];
 extern void keyboard_handler(void);
 extern char read_port(unsigned short port);
 extern void write_port(unsigned short port, unsigned char data);
@@ -73,7 +75,12 @@ void kb_init(void)
 	write_port(0x21 , 0xFD);
 }
 
-void kprint(const char *str, const char attr)							// Вывод на экран 
+void e_bash(void) // Ethereal shell
+{
+	
+}
+
+void kprint(const char *str, const char *attr)							// Вывод на экран 
 {
 	unsigned int i = 0;
 	while (str[i] != '\0') {
@@ -88,17 +95,17 @@ void newline(void)														// Новая строка
 	current_loc = current_loc + (line_size - current_loc % (line_size));
 }
 
-void clear_screen(const char attr)
+void clear_screen()
 {
 	unsigned int i = 0;
 	while (i < SCREENSIZE) 
 	{
 		screen[i++] = ' ';
-		screen[i++] = attr;
+		screen[i++] = KERNEL_CONSOLE_COLOR;
 	}
 }
 
-void keyboard_handler_main(const char attr)
+void keyboard_handler_main()
 {
 	unsigned char status;
 	char keycode;
@@ -109,37 +116,45 @@ void keyboard_handler_main(const char attr)
 	
 	if(status & 0x01)													// Если младший бит == 1, то в буфере что-то есть 
 	{
+		char str[256];
+		
 		keycode = read_port(KEYBOARD_DATA_PORT);
 		
 		if(keycode < 0) return;
 		
-		if(keycode == 0x3B)
+		switch(keycode)
 		{
-			current_loc = 0;
-			clear_screen(0x0a);
-			return;
-		}
-		
-		
-		
-		if(keycode == ENTER_KEY_CODE) {
+			case 0x0E:
+			{
+				screen[current_loc - 2] = ' ';
+				current_loc -= 2;
+				return;
+			}
+			
+			case ENTER_KEY_CODE:
+			{
 				newline();
 				return;
+			}
+			
+			default:
+			{
+				screen[current_loc++] = keyboard_map[(unsigned char) keycode];
+				screen[current_loc++] = KERNEL_CONSOLE_COLOR;
+			}
+			
 		}
 		
-		screen[current_loc++] = keyboard_map[(unsigned char) keycode];
-		screen[current_loc++] = attr;
+		
 	}
 }
 
 void kmain(void)
-{
-	const char *str = "my first kernel with keyboard support";
+{	
+	clear_screen();
+	clear_screen();
 	
-	clear_screen(KERNEL_CONSOLE_ATTR);
-	kprint(str, KERNEL_CONSOLE_ATTR);
-	
-	newline();
+	kprint("Hi there!", 0x01);
 	newline();
 	
 	idt_init();
