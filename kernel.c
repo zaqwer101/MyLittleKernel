@@ -11,6 +11,7 @@
 #define INTERRUPT_GATE 0x8e
 #define KERNEL_CODE_SEGMENT_OFFSET 0x08
 
+#define F1_KEY_CODE 0x3B
 #define ENTER_KEY_CODE 0x1C
 #define BACKSPACE_KEY_CODE 0x0E
 
@@ -79,11 +80,6 @@ void kb_init(void)
 	write_port(0x21 , 0xFD);
 }
 
-void e_bash(void) // Ethereal shell
-{
-	
-}
-
 void kprint(const char *str, const char *attr)							// Вывод на экран 
 {
 	unsigned int i = 0;
@@ -101,6 +97,7 @@ void newline(void)														// Новая строка
 
 void clear_screen()
 {
+        current_loc = 0;
 	unsigned int i = 0;
 	while (i < SCREENSIZE) 
 	{
@@ -109,6 +106,7 @@ void clear_screen()
 	}
 }
 
+// Это уходит в ассемблер
 void keyboard_handler_main()
 {
 	unsigned char status;
@@ -147,6 +145,12 @@ void keyboard_handler_main()
                                 newline();
 				return;
 			}
+
+                        case F1_KEY_CODE:
+                        {
+                            clear_screen();
+                            return;
+                        }
 			
 			default:
 			{
@@ -164,9 +168,7 @@ void keyboard_handler_main()
 
 void kmain(void)
 {	
-	clear_screen();
-	clear_screen();
-	
+        clear_screen();
 	kprint("Hi there!", 0x01);
 	newline();
 	
