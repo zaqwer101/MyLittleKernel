@@ -106,6 +106,8 @@ void clear_screen()
 	}
 }
 
+char *string[256];
+unsigned int counter = 0;
 // Это уходит в ассемблер
 void keyboard_handler_main()
 {
@@ -118,15 +120,13 @@ void keyboard_handler_main()
 	
 	if(status & 0x01)													// Если младший бит == 1, то в буфере что-то есть 
 	{
-                char *string[256];
-                unsigned int counter = 0;
 		keycode = read_port(KEYBOARD_DATA_PORT);
 		
 		if(keycode < 0) return;
 		
 		switch(keycode)
 		{
-                        case BACKSPACE_KEY_CODE:
+            case BACKSPACE_KEY_CODE:
 			{
 				screen[current_loc - 2] = ' ';
 				current_loc -= 2;
@@ -135,27 +135,26 @@ void keyboard_handler_main()
 			
 			case ENTER_KEY_CODE:
 			{
-                                counter = 0;
-                                if(string == "test")
-                                {
-                                    clear_screen();
-                                    kprint("Passed!", KERNEL_CONSOLE_COLOR);
-                                }
-
-                                newline();
+                if(compare_strings("test", string, 5))
+                {
+                    clear_screen();
+                    kprint("Passed!", KERNEL_CONSOLE_COLOR);
+                }
+                newline();
+				counter = 0;
 				return;
 			}
 
-                        case F1_KEY_CODE:
-                        {
-                            clear_screen();
-                            return;
-                        }
+            case F1_KEY_CODE:
+            {
+                clear_screen();
+                	return;
+                }
 			
 			default:
 			{
-                                string[counter] = keyboard_map[(unsigned char) keycode];
-                                counter++;
+                string[counter] = keyboard_map[(unsigned char) keycode];
+                counter++;
 				screen[current_loc++] = keyboard_map[(unsigned char) keycode];
 				screen[current_loc++] = KERNEL_CONSOLE_COLOR;
 			}
@@ -166,10 +165,12 @@ void keyboard_handler_main()
 	}
 }
 
+
+
 void kmain(void)
 {	
-        clear_screen();
-	kprint("Hi there!", 0x01);
+    clear_screen();
+	kprint("Trust me i'm the kernel", 0x01);
 	newline();
 	
 	idt_init();
@@ -177,6 +178,3 @@ void kmain(void)
 
 	while(1);
 }
-
-
-
